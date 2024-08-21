@@ -1,0 +1,3 @@
+ID,new_dataset,image_size,aug_batch,val_split,learning_rate,num_epochs,num_layers,num_units_1,activation_1,regularization_1,dropout_1,num_units_2,activation_2,regularization_2,dropout_2,num_units_3,activation_3,regularization_3,dropout_3,num_units_4,activation_4,regularization_4,dropout_4,,
+1,1,40,10,0.2,0.00002,200,2,64,relu,0.003,0.1,16,relu,0.003,0,0,0,0,0,0,0,0,0,,
+2,0,40,10,0.2,0.00002,200,2,128,relu,0.003,0.1,32,relu,0.003,0,0,0,0,0,0,0,0,0,,

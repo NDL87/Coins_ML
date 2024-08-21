@@ -1,0 +1,38 @@
+Model Architecture:
+Model: "my_model"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ dense (Dense)               (None, 128)               1843328   
+                                                                 
+ dense_1 (Dense)             (None, 64)                8256      
+                                                                 
+ dense_2 (Dense)             (None, 1)                 65        
+                                                                 
+=================================================================
+Total params: 1851649 (7.06 MB)
+Trainable params: 1851649 (7.06 MB)
+Non-trainable params: 0 (0.00 Byte)
+_________________________________________________________________
+
+Hyperparameters:
+Layer: dense
+  Units: 128
+  Activation: relu
+  Regularization L1: 0.0
+  Regularization L2: 0.004999999888241291
+Layer: dense_1
+  Units: 64
+  Activation: relu
+  Regularization L1: 0.0
+  Regularization L2: 0.004999999888241291
+Layer: dense_2
+  Units: 1
+  Activation: sigmoid
+  Regularization L1: 0.0
+  Regularization L2: 0.004999999888241291
+
+Optimizer:
+  Name: Adam
+  Epochs: 1
+  Learning Rate: 4.999999873689376e-05

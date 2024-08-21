@@ -157,7 +157,7 @@ def img_prep(img_input_dir, img_proc_dir, npy_dir, year_1, year_2, image_size=12
             count += 1
             image_path = os.path.join(img_input_dir, filename)
             square_image = square_img(image_path, image_size)
-            #cv2.imwrite(img_proc_dir + 'GS_' + filename, square_image)
+            cv2.imwrite(img_proc_dir + 'GS_' + filename, square_image)
             save_img_nparray(square_image, npy_dir + 'GS_' + filename)
         #if count == 10: break
 
@@ -184,6 +184,7 @@ def npy_concat(npy_dir, output_filename_img, output_filename_y):
         flattened_images.append(flattened_image)
         y_vector[count] = int(filename.split('.')[0][-1]) - 1
         count += 1
+        os.remove(os.path.join(npy_dir, filename))
 
     concatenated_images = np.array(flattened_images)
     np.save(npy_dir + output_filename_img, concatenated_images)
@@ -208,7 +209,7 @@ def classify_obverse_revers(img_input_dir):
         y_check = np.zeros((1, 1), dtype=int)
         #print(X_check.shape, y_check.shape)
         #print(X_check, y_check)
-        #cv2.imwrite(img_proc_dir + 'GS_' + filename, square_image)
+        #cv2.imwrite(img_proc_dir + 'GS_' + img_name, square_image)
         X_check[0] = np.array(square_image/255).flatten()
         y_check[0] = int(img_name.split('.')[0][-1]) - 1
         #print(X_check.shape, y_check.shape)
@@ -331,6 +332,37 @@ def train_model_2(X, y, md_id):
     plot_loss(history, md_id, num_samples, int(np.sqrt(img_size)), delta_time)
     model.save(f'{ml_models_dir}classifier_obverse_revers.h5')
     return model
+
+
+def predict_test(model_name, X, y, plot = 0):
+    m, n = X.shape
+    print(m, n)
+    failed = []
+    global ml_models_dir
+    loaded_model = tf.keras.models.load_model(f'{ml_models_dir}{model_name}')
+
+    for i in range(m):
+        prediction = loaded_model.predict(X[i].reshape(1, n), verbose=0)
+        if prediction >= 0.5:
+            yhat = 1
+        else:
+            yhat = 0
+        if y[i, 0] != yhat:
+            failed.append(i)
+    print(f'{len(failed)} failed out of {m}\n', failed)
+    print(f"\nAccuracy = {(1 - len(failed) / m) * 100:.2f}%")
+
+    if plot != 0:
+        fig, axes = plt.subplots(3, 4, figsize=(8, 4))
+        for i, ax in enumerate(axes.flat):
+            print(i, ax)
+            failed_index = failed[i]
+            X_random_reshaped = X[failed_index].reshape((int(np.sqrt(n)), int(np.sqrt(n))))#.T
+            ax.imshow(X_random_reshaped, cmap='gray')
+            ax.set_title(f"{failed_index}: {y[failed_index, 0]+1}", fontsize=10, color='red', fontweight='bold')
+            ax.set_title(f"{y[failed_index, 0]+1}")
+            ax.set_axis_off()
+        plt.show()
 
 
 def visualize_coins(X, y, items, predict=0, plot = 0):
@@ -486,19 +518,19 @@ def model_study(model_settings):
             aug_batch = md['aug_batch']
             data_augmentation_2(img_input_dir, img_aug_dir, batch_per_img=aug_batch, aug_originals=0)
             img_prep(img_aug_dir, img_proc_dir, npy_dir, 1700, 1799, image_size=image_size)
-            X_train, X_test, y_train, y_test = dataset_prep()
-        #train_model_2(X_train, y_train, md)
+            X_train, X_test, y_train, y_test = dataset_prep(test_size=0.1)
+        train_model_2(X_train, y_train, md)
 
 
 def data_augmentation_2(img_dir, augmented_dir, batch_per_img=10, aug_originals=2):
     clean_folder(augmented_dir)
     # Create an ImageDataGenerator instance with desired augmentations
     datagen = ImageDataGenerator(
-        rotation_range=10,
-        width_shift_range=0.025,
-        height_shift_range=0.025,
-        shear_range=0.025,
-        zoom_range=0.025,
+        rotation_range=15, #10,
+        width_shift_range=0.05, #0.025,
+        height_shift_range=0.05, #0.025,
+        shear_range=0.05, #0.025,
+        zoom_range=0.05, #0.025,
         brightness_range=[0.01, 1.23],
         fill_mode='nearest'
         #horizontal_flip = True,
@@ -525,24 +557,24 @@ def data_augmentation_2(img_dir, augmented_dir, batch_per_img=10, aug_originals=
         os.rename(os.path.join(augmented_dir, filename), os.path.join(augmented_dir, new_filename))
 
 
-def dataset_prep():
+def dataset_prep(test_size):
     X = np.load(npy_dir + "_Dataset.npy")
     y = np.load(npy_dir + "_y.npy")
     print(f'Original dataset: {X.shape}, {y.shape}')
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=1)
-    items_to_plot = int(math.floor(np.sqrt(len(y_test))))
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=1)
+    #items_to_plot = int(math.floor(np.sqrt(len(y_test))))
     print(f'Train dataset: {X_train.shape}, {y_train.shape}')
     print(f'Test dataset: {X_test.shape}, {y_test.shape}')
-    print(f'Items to plot: {items_to_plot}')
+    #print(f'Items to plot: {items_to_plot}')
 
     return X_train, X_test, y_train, y_test
 
 ########################################################################################################################
 # Set the folder path
-img_input_dir = 'D:/_PROJECTS/Coins_Classification/Images/_TEST/Roubles_Raw/'
-img_aug_dir = 'D:/_PROJECTS/Coins_Classification/Images/_TEST/aug/'
-img_proc_dir = 'D:/_PROJECTS/Coins_Classification/Images/_TEST/Roubles_Grey_Squared/'
-npy_dir = 'D:/_PROJECTS/Coins_Classification/Images/_TEST/Roubles_NPY/'
+img_input_dir = 'D:/_PROJECTS/Coins_Classification/Images/_TEST/Roubles_Raw2/'
+img_aug_dir = 'D:/_PROJECTS/Coins_Classification/Images/_TEST/aug2/'
+img_proc_dir = 'D:/_PROJECTS/Coins_Classification/Images/_TEST/Roubles_Grey_Squared2/'
+npy_dir = 'D:/_PROJECTS/Coins_Classification/Images/_TEST/Roubles_NPY2/'
 ml_models_dir = 'D:/_PROJECTS/Coins_Classification/ML_models/'
 dir_to_classify = 'D:/_PROJECTS/Coins_Classification/Images/_TEST/_to_classify/'
 settings_file = 'D:/_PROJECTS/Coins_Classification/ML_models/model_settings.csv'
@@ -555,17 +587,20 @@ model_settings = read_csv(settings_file)
 
 # Data augmentation
 #X, y = data_augmentation(X, y, repeat = 100)
-#data_augmentation_2(img_input_dir, img_aug_dir, batch_per_img=10, aug_originals=0)
+data_augmentation_2(img_input_dir, img_aug_dir, batch_per_img=5, aug_originals=0)
 
 # Prepare images for Dataset
-#img_prep(img_aug_dir, img_proc_dir, npy_dir, 1700, 1799, image_size=120)
+img_prep(img_aug_dir, img_proc_dir, npy_dir, 1700, 1799, image_size=120)
 
 # Train the model
 #model = train_model(X_train, y_train)
 
-model_study(model_settings)
+#model_study(model_settings)
 
 # Verification and Vusialization
+#X_train, X_test, y_train, y_test = dataset_prep(test_size=0.02)
+#predict_test('classifier_obverse_revers.h5', X_test, y_test, plot = 1)
+
 #visualize_coins(X_test, y_test, items_to_plot, predict = 1, plot = 0)
 
 # Classify Obverse-Reverse using pre-trained model
